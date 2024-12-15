@@ -20,12 +20,12 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.github_token }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: ./server
-          file: ./Dockerfile
+          file: Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
