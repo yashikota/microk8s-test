@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microk8s-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: microk8s-test
+  template:
+    metadata:
+      labels:
+        app: microk8s-test
+    spec:
+      containers:
+      - name: microk8s-test
+        image: ghcr.io/yashikota/microk8s-test:latest
+        ports:
+        - containerPort: 8080

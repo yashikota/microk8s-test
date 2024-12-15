@@ -60,3 +60,28 @@
       command: microk8s kubectl port-forward service/argo-cd-argocd-server -n argocd 8080:443
       async: 600
       poll: 0
+
+- name: Upload ArgoCD application manifest
+  hosts: microk8s
+  tasks:
+    - name: Make k8s directory
+      file:
+        path: "{{ ansible_env.HOME }}/k8s/argocd"
+        state: directory
+        recurse: yes
+
+    - name: Upload ArgoCD application manifest
+      copy:
+        src: "{{ playbook_dir }}/../k8s/argocd/application.yaml"
+        dest: "{{ ansible_env.HOME }}/k8s/argocd/application.yaml"
+        backup: yes
+
+- name: Apply ArgoCD application manifest
+  hosts: microk8s
+  tasks:
+    - name: Apply ArgoCD application manifest
+      command: microk8s kubectl apply -f "{{ ansible_env.HOME }}/k8s/argocd/application.yaml"
+      register: argocd_apply
+      until: argocd_apply.rc == 0
+      retries: 5
+      delay: 30
