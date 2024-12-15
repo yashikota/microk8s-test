@@ -1,0 +1,5 @@
+all:
+  children:
+    microk8s:
+      hosts:
+        kota-1:

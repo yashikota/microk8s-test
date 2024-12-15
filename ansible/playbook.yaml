@@ -1,0 +1,62 @@
+- name: Install microk8s
+  become: yes
+  hosts: microk8s
+  tasks:
+    - community.general.snap:
+        classic: true
+        channel: 1.32
+        name:
+          - microk8s
+
+- name: Adding user to group
+  become: yes
+  hosts: microk8s
+  tasks:
+    - user:
+        name: "{{ remote_user }}"
+        groups: microk8s
+        append: yes
+    - meta: reset_connection
+
+- name: Change kube folder ownership
+  become: yes
+  hosts: microk8s
+  tasks:
+    - file:
+        path: "/home/{{ remote_user }}/.kube"
+        owner: "{{ remote_user }}"
+        group: "{{ remote_user }}"
+        state: directory
+
+- name: Enable microk8s common modules
+  become: yes
+  hosts: microk8s
+  tasks:
+    - name: Enable official modules
+      command: microk8s enable dns cert-manager ingress hostpath-storage community
+    - name: Enable community modules
+      command: microk8s enable argocd
+
+- name: Configure ArgoCD
+  become: yes
+  hosts: microk8s
+  tasks:
+    - name: Wait for ArgoCD server to be ready
+      command: microk8s kubectl wait --for=condition=available --timeout=600s deployment/argo-cd-argocd-server -n argocd
+      retries: 5
+      delay: 30
+      register: argocd_status
+      until: argocd_status.rc == 0
+
+    - name: Retrieve ArgoCD admin initial password
+      shell: microk8s kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode
+      register: argocd_password
+
+    - name: Display ArgoCD admin password
+      debug:
+        msg: "ArgoCD admin password: {{ argocd_password.stdout }}"
+
+    - name: Forward ArgoCD server port
+      command: microk8s kubectl port-forward service/argo-cd-argocd-server -n argocd 8080:443
+      async: 600
+      poll: 0
